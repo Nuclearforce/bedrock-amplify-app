@@ -9,7 +9,7 @@ const region =
   process.env.AWS_REGION ||
   "us-west-1";
 
-const modelId =
+const modelId = 
   process.env.LLAMA_MODEL_ID || "arn:aws:bedrock:us-west-1:604426749416:inference-profile/us.meta.llama4-maverick-17b-instruct-v1:0";
 
 const client = new BedrockRuntimeClient({ region });
