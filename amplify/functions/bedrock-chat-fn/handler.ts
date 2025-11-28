@@ -7,10 +7,10 @@ import {
 const region =
   process.env.BEDROCK_REGION ||
   process.env.AWS_REGION ||
-  "us-west-1";
+  "us-east1";
 
 const modelId = 
-  process.env.LLAMA_MODEL_ID || "arn:aws:bedrock:us-west-1:604426749416:inference-profile/us.meta.llama4-maverick-17b-instruct-v1:0";
+  process.env.LLAMA_MODEL_ID || "arn:aws:bedrock:us-east1:604426749416:inference-profile/us.meta.llama4-maverick-17b-instruct-v1:0";
 
 const client = new BedrockRuntimeClient({ region });
 
