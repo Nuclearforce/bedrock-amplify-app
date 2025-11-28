@@ -1,7 +1,11 @@
 import { useState } from "react";
+import amplifyOutputs from "../amplify_outputs.json";
 import "./App.css";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL =
+  amplifyOutputs?.custom?.CHAT_API?.endpoint?.replace(/\/$/, "") || "";
+const CHAT_PATH = amplifyOutputs?.custom?.CHAT_API?.path || "/chat";
+const API_URL = API_BASE_URL ? `${API_BASE_URL}${CHAT_PATH}` : "";
 
 function App() {
   const [messages, setMessages] = useState([]);
@@ -23,7 +27,7 @@ function App() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/chat`, {
+      const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -60,10 +64,8 @@ function App() {
     <div className="chat-container">
       <h1>Bedrock Llama Chat 🦙</h1>
 
-      {!API_BASE_URL && (
-        <div className="error">
-          VITE_API_BASE_URL is not set. Check your .env file.
-        </div>
+      {!API_URL && (
+        <div className="error">API endpoint is not set in amplify_outputs.json.</div>
       )}
 
       <div className="chat-box">
@@ -88,9 +90,9 @@ function App() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask something…"
-          disabled={!API_BASE_URL || loading}
+          disabled={!API_URL || loading}
         />
-        <button type="submit" disabled={!API_BASE_URL || loading}>
+        <button type="submit" disabled={!API_URL || loading}>
           Send
         </button>
       </form>
@@ -99,3 +101,4 @@ function App() {
 }
 
 export default App;
+
