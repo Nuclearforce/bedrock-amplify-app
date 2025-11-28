@@ -62,7 +62,7 @@ function App() {
 
   return (
     <div className="chat-container">
-      <h1>Bedrock Llama Chat 🦙</h1>
+      <h1>Sand Bedrock LLM POC</h1>
 
       {!API_URL && (
         <div className="error">API endpoint is not set in amplify_outputs.json.</div>
@@ -80,7 +80,7 @@ function App() {
             <p>{m.content}</p>
           </div>
         ))}
-        {loading && <div className="typing">Llama is thinking…</div>}
+        {loading && <div className="typing">LLM is thinking...</div>}
       </div>
 
       {error && <div className="error">{error}</div>}
@@ -89,7 +89,7 @@ function App() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask something…"
+          placeholder="RAG still in progress..."
           disabled={!API_URL || loading}
         />
         <button type="submit" disabled={!API_URL || loading}>
@@ -101,4 +101,3 @@ function App() {
 }
 
 export default App;
-
