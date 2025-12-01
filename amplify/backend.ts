@@ -52,6 +52,7 @@ const bedrockPolicy = new iam.PolicyStatement({
     // Knowledge Base / Agent Runtime APIs
     "bedrock:Retrieve",
     "bedrock:RetrieveAndGenerate",
+    "bedrock:GetInferenceProfile",
   ],
   resources: ["*"], // you can later restrict this to specific model / KB ARNs
 });
