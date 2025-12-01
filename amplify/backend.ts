@@ -42,10 +42,18 @@ const chatResource = chatApi.root.addResource("chat");
 // POST /chat → Lambda
 chatResource.addMethod("POST", lambdaIntegration);
 
-// ===== Grant Lambda permission to call Bedrock =====
+// ===== Grant Lambda permission to call Bedrock (Knowledge Base) =====
 const bedrockPolicy = new iam.PolicyStatement({
-  actions: ["bedrock:InvokeModel", "bedrock:Converse"],
-  resources: ["*"], // you can restrict to specific model ARN later
+  actions: [
+    // Used under the hood by RetrieveAndGenerate
+    "bedrock:InvokeModel",
+    "bedrock:InvokeModelWithResponseStream",
+
+    // Knowledge Base / Agent Runtime APIs
+    "bedrock:Retrieve",
+    "bedrock:RetrieveAndGenerate",
+  ],
+  resources: ["*"], // you can later restrict this to specific model / KB ARNs
 });
 
 backend.bedrockChatFn.resources.lambda.addToRolePolicy(bedrockPolicy);

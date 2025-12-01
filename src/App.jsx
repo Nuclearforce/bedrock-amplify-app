@@ -62,7 +62,7 @@ function App() {
 
   return (
     <div className="chat-container">
-      <h1>Sand Bedrock LLM POC</h1>
+      <h1>Sand Bedrock RAG POC</h1>
 
       {!API_URL && (
         <div className="error">API endpoint is not set in amplify_outputs.json.</div>
@@ -76,7 +76,7 @@ function App() {
               m.role === "user" ? "msg-user" : "msg-assistant"
             }`}
           >
-            <strong>{m.role === "user" ? "You" : "Llama"}</strong>
+            <strong>{m.role === "user" ? "You" : "Assistant"}</strong>
             <p>{m.content}</p>
           </div>
         ))}

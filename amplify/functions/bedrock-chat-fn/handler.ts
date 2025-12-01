@@ -1,18 +1,26 @@
 // amplify/functions/bedrock-chat-fn/handler.ts
 import {
-  BedrockRuntimeClient,
-  ConverseCommand,
-} from "@aws-sdk/client-bedrock-runtime";
+  BedrockAgentRuntimeClient,
+  RetrieveAndGenerateCommand,
+} from "@aws-sdk/client-bedrock-agent-runtime";
 
 const region =
   process.env.BEDROCK_REGION ||
   process.env.AWS_REGION ||
-  "us-east1";
+  "us-east-1";
 
-const modelId = 
-  process.env.LLAMA_MODEL_ID || "arn:aws:bedrock:us-east1:604426749416:inference-profile/us.meta.llama4-maverick-17b-instruct-v1:0";
+// Knowledge Base ID from Bedrock
+const knowledgeBaseId =
+  process.env.KB_ID || "HFDJYZVUMK";
 
-const client = new BedrockRuntimeClient({ region });
+// Model / inference profile to use with the KB
+// Prefer a dedicated KB_MODEL_ARN, else fall back to your existing LLAMA_MODEL_ID.
+const modelArn =
+  process.env.KB_MODEL_ARN ||
+  process.env.LLAMA_MODEL_ID || // re-use your old llama inference profile if you want
+  "arn:aws:bedrock:us-east-1:604426749416:inference-profile/us.meta.llama4-maverick-17b-instruct-v1:0";
+
+const client = new BedrockAgentRuntimeClient({ region });
 
 type HistoryMessage = {
   role: "user" | "assistant" | "system";
@@ -38,42 +46,37 @@ export const handler = async (event: any) => {
       return response(400, { error: "message is required" });
     }
 
-    const messages: any[] = [];
+    // Build a prompt that includes a small history context (optional)
+    let prompt: string;
 
-    // optional history
-    for (const m of history) {
-      messages.push({
-        role: m.role,
-        content: [{ text: m.content }],
-      });
+    if (history.length > 0) {
+      const historyText = history
+        .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
+        .join("\n");
+      prompt =
+        `Here is the previous conversation:\n` +
+        `${historyText}\n\n` +
+        `The user now asks: ${userMessage}`;
+    } else {
+      prompt = userMessage;
     }
 
-    // current user message
-    messages.push({
-      role: "user",
-      content: [{ text: userMessage }],
-    });
-
-    const command = new ConverseCommand({
-      modelId,
-      messages,
-      inferenceConfig: {
-        maxTokens: 512,
-        temperature: 0.3,
-        topP: 0.9,
+    const command = new RetrieveAndGenerateCommand({
+      input: {
+        text: prompt,
+      },
+      retrieveAndGenerateConfiguration: {
+        type: "KNOWLEDGE_BASE",
+        knowledgeBaseConfiguration: {
+          knowledgeBaseId,
+          modelArn, // <-- this is what TypeScript was complaining about
+        },
       },
     });
 
     const result = await client.send(command);
 
-    const outputContent = result.output?.message?.content || [];
-    let reply = "";
-    for (const c of outputContent) {
-      if ("text" in c) {
-        // @ts-ignore – content items have a `text` field
-        reply += c.text;
-      }
-    }
+    const reply = result.output?.text ?? "";
 
     return response(200, { reply });
   } catch (err: any) {
