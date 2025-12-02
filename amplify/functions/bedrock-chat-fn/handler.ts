@@ -11,7 +11,7 @@ const region =
 
 // Knowledge Base ID from Bedrock
 const knowledgeBaseId =
-  process.env.KB_ID || "IVIFHG7AO2";
+  process.env.KB_ID || "7IZAETHNEQ";
 
 // Model / inference profile to use with the KB
 // Prefer a dedicated KB_MODEL_ARN, else fall back to your existing LLAMA_MODEL_ID.
