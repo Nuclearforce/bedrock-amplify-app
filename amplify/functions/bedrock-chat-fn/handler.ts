@@ -1,24 +1,18 @@
 // amplify/functions/bedrock-chat-fn/handler.ts
 import {
   BedrockAgentRuntimeClient,
-  RetrieveAndGenerateCommand,
+  InvokeAgentCommand,
+  ResponseStream,
 } from "@aws-sdk/client-bedrock-agent-runtime";
+import { randomUUID } from "crypto";
 
 const region =
   process.env.BEDROCK_REGION ||
   process.env.AWS_REGION ||
   "us-east-1";
 
-// Knowledge Base ID from Bedrock
-const knowledgeBaseId =
-  process.env.KB_ID || "7IZAETHNEQ";
-
-// Model / inference profile to use with the KB
-// Prefer a dedicated KB_MODEL_ARN, else fall back to your existing LLAMA_MODEL_ID.
-const modelArn =
-  process.env.KB_MODEL_ARN ||
-  process.env.LLAMA_MODEL_ID || // re-use your old llama inference profile if you want
-  "arn:aws:bedrock:us-east-1:604426749416:inference-profile/us.meta.llama4-maverick-17b-instruct-v1:0";
+const AGENT_ID = process.env.AGENT_ID || "VAHLL7GA4L";
+const AGENT_ALIAS_ID = process.env.AGENT_ALIAS_ID || "HZ8OLFGZ25";
 
 const client = new BedrockAgentRuntimeClient({ region });
 
@@ -28,8 +22,12 @@ type HistoryMessage = {
 };
 
 export const handler = async (event: any) => {
+
+  const method =
+    event.httpMethod || event.requestContext?.http?.method || "";
+
   // CORS preflight
-  if (event.httpMethod === "OPTIONS") {
+  if (method  === "OPTIONS") {
     return {
       statusCode: 200,
       headers: corsHeaders(),
@@ -40,45 +38,43 @@ export const handler = async (event: any) => {
   try {
     const body = JSON.parse(event.body || "{}");
     const userMessage = (body.message || "").trim();
-    const history: HistoryMessage[] = body.history || [];
+    const _history: HistoryMessage[] = body.history || []; // kept if you want it later
+    const incomingSessionId: string | undefined = body.sessionId;
 
     if (!userMessage) {
       return response(400, { error: "message is required" });
     }
 
-    // Build a prompt that includes a small history context (optional)
-    let prompt: string;
+    // Keep the prompt small – let the Agent use its own session state
+    const prompt = userMessage;
+    const sessionId = incomingSessionId || randomUUID();
 
-    if (history.length > 0) {
-      const historyText = history
-        .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
-        .join("\n");
-      prompt =
-        `Here is the previous conversation:\n` +
-        `${historyText}\n\n` +
-        `The user now asks: ${userMessage}`;
-    } else {
-      prompt = userMessage;
-    }
-
-    const command = new RetrieveAndGenerateCommand({
-      input: {
-        text: prompt,
-      },
-      retrieveAndGenerateConfiguration: {
-        type: "KNOWLEDGE_BASE",
-        knowledgeBaseConfiguration: {
-          knowledgeBaseId,
-          modelArn, // <-- this is what TypeScript was complaining about
-        },
-      },
+    const command = new InvokeAgentCommand({
+      agentId: AGENT_ID,
+      agentAliasId: AGENT_ALIAS_ID,
+      sessionId,
+      inputText: prompt,
     });
 
     const result = await client.send(command);
 
-    const reply = result.output?.text ?? "";
+    let reply = "";
+    const decoder = new TextDecoder("utf-8");
 
-    return response(200, { reply });
+    if (result.completion && Symbol.asyncIterator in result.completion) {
+      for await (const eventChunk of result.completion as AsyncIterable<ResponseStream>) {
+        if (eventChunk.chunk?.bytes) {
+          reply += decoder.decode(eventChunk.chunk.bytes);
+        }
+      }
+    }
+
+    // Optionally guard against empty reply
+    if (!reply) {
+      reply = "The agent didn't return a response in time. Please try a simpler or more specific question.";
+    }
+
+    return response(200, { reply, sessionId });
   } catch (err: any) {
     console.error("Error in bedrock-chat-fn:", err);
     return response(500, {
@@ -89,7 +85,7 @@ export const handler = async (event: any) => {
 
 function corsHeaders() {
   return {
-    "Access-Control-Allow-Origin": "*", // tighten in prod
+    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "OPTIONS,POST",
   };

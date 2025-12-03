@@ -4,7 +4,7 @@ import "./App.css";
 
 const API_BASE_URL =
   amplifyOutputs?.custom?.CHAT_API?.endpoint?.replace(/\/$/, "") || "";
-const CHAT_PATH = amplifyOutputs?.custom?.CHAT_API?.path || "/chat";
+const CHAT_PATH = amplifyOutputs?.custom?.CHAT_API?.path || ""; // now usually ""
 const API_URL = API_BASE_URL ? `${API_BASE_URL}${CHAT_PATH}` : "";
 
 function App() {
@@ -12,6 +12,8 @@ function App() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // 🔹 NEW: keep track of Bedrock Agent sessionId
+  const [sessionId, setSessionId] = useState(null);
 
   const sendMessage = async (e) => {
     e.preventDefault();
@@ -27,13 +29,20 @@ function App() {
     setLoading(true);
 
     try {
+      const body = {
+        message: trimmed,
+        history: newMessages,
+      };
+
+      // 🔹 Include sessionId if we already have one
+      if (sessionId) {
+        body.sessionId = sessionId;
+      }
+
       const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: trimmed,
-          history: newMessages,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!res.ok) {
@@ -42,6 +51,11 @@ function App() {
       }
 
       const data = await res.json();
+
+      // 🔹 Capture sessionId from backend (so agent keeps context)
+      if (data.sessionId) {
+        setSessionId(data.sessionId);
+      }
 
       if (data.reply) {
         setMessages((prev) => [
@@ -65,7 +79,9 @@ function App() {
       <h1>Sand Bedrock RAG POC</h1>
 
       {!API_URL && (
-        <div className="error">API endpoint is not set in amplify_outputs.json.</div>
+        <div className="error">
+          API endpoint is not set in amplify_outputs.json.
+        </div>
       )}
 
       <div className="chat-box">
@@ -89,7 +105,7 @@ function App() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="RAG still in progress..."
+          placeholder="Ask the agent anything about the KB..."
           disabled={!API_URL || loading}
         />
         <button type="submit" disabled={!API_URL || loading}>
