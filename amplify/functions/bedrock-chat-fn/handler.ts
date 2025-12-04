@@ -12,7 +12,7 @@ const region =
   "us-east-1";
 
 const AGENT_ID = process.env.AGENT_ID || "VAHLL7GA4L";
-const AGENT_ALIAS_ID = process.env.AGENT_ALIAS_ID || "HZ8OLFGZ25";
+const AGENT_ALIAS_ID = process.env.AGENT_ALIAS_ID || "QRTSOHUJXL";
 
 const client = new BedrockAgentRuntimeClient({ region });
 
