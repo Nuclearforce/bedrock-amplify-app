@@ -10,7 +10,7 @@ export const bedrockChatFn = defineFunction({
     BEDROCK_REGION: "us-east-1", 
     KB_ID: "IVIFHG7AO2",
     AGENT_ID: "VAHLL7GA4L",
-    AGENT_ALIAS_ID: "QRTSOHUJXL",
+    AGENT_ALIAS_ID: "EFEOF95VBP",
   },
   // We'll add IAM permissions in the API resource to keep this file simple
 });
